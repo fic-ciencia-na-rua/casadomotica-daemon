@@ -3,6 +3,16 @@
 
 from arduino import constants
 
+variables = {
+	'digital' :
+			{
+		'in' : 
+			{
+				LUZ_PASILLO		: "Luz del pasillo",
+				LUZ_HABITACION	: "Luz de la habitación"
+			}
+		}
+					
 digital_status = [
 		"LUCES_PASILLO",
 		"LUCES_HABITA1"
