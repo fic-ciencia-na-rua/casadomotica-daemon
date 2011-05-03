@@ -4,10 +4,12 @@
 __all__ = ["iluminacion"]
 
 def load_all():
-	runables = []
+	modules = {}
 	
 	for module in __all__:
-		x = __import__(module)
-		runables.append(x.run)
+		x = __import__(__name__ +'.'+ module)
+		modules[module] = (x)
 		
+	return modules
+
 

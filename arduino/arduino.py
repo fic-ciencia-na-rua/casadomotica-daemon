@@ -42,7 +42,7 @@ class Arduino:
 		return read_byte(True)
 	
 
-def arduino_list():
+def device_list():
 	if not os.path.isdir('/dev'):
 		raise EnvironmentError('You have no /dev dir!')
 

@@ -3,7 +3,7 @@
 
 import controller, arduino
 from threading import Thread
-from controller import *
+# from controller import *
 
 
 
@@ -18,14 +18,13 @@ def join_alive_threads(thread_list):
 
 def ArduinoHypervisor():
 	"""This is the master class for the arduino controllers"""
-	arduino_devices = arduino.arduino_list()
+	arduino_devices = arduino.device_list()
 	
 	# Take all controllers:
+	modules = controller.load_all()
 	workers = {}
-	for cname in controller.__all__:
-		cobj = globals()[cname]()
-		# cobj = getattr(controller, cname)
-		arduino_id = cobj.arduino_id
+	for key, module in modules.iteritems():
+		arduino_id = module.arduino_id
 		if arduino_id in workers:
 			workers[arduino_id].append(cobj)
 		else:
