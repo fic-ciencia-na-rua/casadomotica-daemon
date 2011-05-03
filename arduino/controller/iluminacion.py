@@ -1,22 +1,18 @@
 #!/usr/bin/python
 # vim: set fileencoding=utf-8 noet ts=4 sw=4 sts=4 tw=79 :
 
-from arduino import constants
+from arduino.constants import *
 
-variables = {
-	'digital' :
-			{
-		'in' : 
-			{
-				LUZ_PASILLO		: "Luz del pasillo",
-				LUZ_HABITACION	: "Luz de la habitación"
-			}
-		}
-					
-digital_status = [
-		"LUCES_PASILLO",
-		"LUCES_HABITA1"
-		]
+variables = { \
+		'digital' : \
+		{ \
+			'in' : \
+			{ \
+				LUZ_PASILLO		: "Luz del pasillo", \
+				LUZ_HABITACION	: "Luz de la habitación" \
+			} \
+		} \
+}
 
 class iluminacion:
 	def __init__(self, arduino):
@@ -32,6 +28,12 @@ class iluminacion:
 
 print "Iluminacion controller loaded"
 
+_iluminacion = None
+
 def run():
 	pass
+
+def use_arduino(arduino):
+	"""Sets the module to use the arduino specified"""
+	_iluminacion = iluminacion(arduino)
 

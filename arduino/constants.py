@@ -10,3 +10,10 @@ PROGRAM_IRLED = 0x01
 QUERY_IDENT = 0x11 # ASCII DC1 (Device Control 1)
 
 
+
+##### Operaciones asignadas
+LUZ_PASILLO = 0x01
+LUZ_HABITACION = 0x02
+
+
+
