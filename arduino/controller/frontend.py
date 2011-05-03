@@ -1,20 +1,5 @@
 #!/usr/bin/python
-# vim: set fileencoding=utf-8 noet ts=8 sw=8 sts=8 :
-
-############# DAEMON CODE ##############
-########################################
-arduinos = []
-
-WEBPORT = 3000
-BAUDRATE = 9600
-
-import os, sys, re
-
-import asyncore
-import socket
-
-from arduino impot hypervisor
-
+# vim: set fileencoding=utf-8 noet ts=4 sw=4 sts=4 tw=79 :
 
 class FrontendConnector(asyncore.dispatcher_with_send):
 
@@ -40,18 +25,5 @@ class FrontendConnector(asyncore.dispatcher):
 def FrontendServer():
 	server = FrontendConnector('localhost', WEBPORT);
 	asyncore.loop()
-
-def main():
-	# Spawn threads
-	from multiprocessing import Process
-	frontend = Process(target=FrontendServer)
-	arduino_ctl = Process(target=ArduinoHypervisor)
-	
-	frontend.start()
-	arduino_ctl.start()
-	
-	frontend.join()
-	arduino_ctl.join()
-
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# vim: set fileencoding=utf-8 noet ts=8 sw=8 sts=8 :
+# vim: set fileencoding=utf-8 noet ts=4 sw=4 sts=4 tw=79 :
 
 ### Códigos de arduino
 
