@@ -13,7 +13,7 @@ import os, sys, re
 import asyncore
 import socket
 
-from arduino impot hypervisor
+from arduino import hypervisor
 
 
 class FrontendConnector(asyncore.dispatcher_with_send):
