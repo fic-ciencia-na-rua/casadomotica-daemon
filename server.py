@@ -40,25 +40,21 @@ def FrontendServer():
 	asyncore.loop()
 
 
-def get_arduinos() :
-	if(not os.path.isdir('/dev')):
-		raise EnvironmentError('You have no /dev dir!')
-
-	p_devs = os.listdir('/dev');
-	prog = re.compile('tty');
-	p_devs = [device for device in p_devs if None != prog.match(device) ]
-
-	## Order the devices:
-	def query_and_order_arduinos(arduino_list):
-		return arduino_list
-	
-	return query_and_order_arduinos(p_devs)
-
-
-
 def ArduinoHypervisor():
 	"""This is the master class for the arduino controllers"""
-	arduino_devices = get_arduinos()
+	arduino_devices = arduino.arduino_list()
+
+	# TODO: Implement magic here
+	# arduino_workers = [ arduino.worker for arduino in arduino_devices ]
+	arduino_workers = []
+	arduino_workers = [ Process(target=arduino.worker) for arduino in arduino_workers ]
+
+	for worker in arduino_workers:
+		worker.start()
+
+	for worker in arduino_workers:
+		worker.join()
+
 	return None
 
 
