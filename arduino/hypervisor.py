@@ -25,7 +25,7 @@ class ArduinoHypervisor:
 			self.in_queue = queue.Queue()
 			self.out_queue = queue.Queue()
 			self.listeners = []
-		
+
 		def addListener(self, callback):
 			self.listeners.append(callback)
 
@@ -46,7 +46,7 @@ class ArduinoHypervisor:
 					else:
 						msg = byte
 					self.in_queue.put(msg, block=False)
-					
+
 				# Do we have to send data?
 				if not self.out_queue.empty():
 					# Send one message
@@ -65,7 +65,7 @@ class ArduinoHypervisor:
 					listener.recv_msg(msg)
 				self.in_queue.task_done()
 			pass
-	
+
 	## End of class ArduinoHandler
 	def __init__(self, device_list):
 		self.arduino_handlers = []
@@ -82,7 +82,7 @@ class ArduinoHypervisor:
 			thread.start()
 
 		join_alive_threads(threads)
-		
+
 
 def run():
 	hypervisor = ArduinoHypervisor(arduino.device_list())
@@ -96,11 +96,11 @@ def run():
 			workers[arduino_id].append(cobj)
 		else:
 			workers[arduino_id] = [cobj]
-	
+
 	for arduino_id, mod_list in workers.iteritems():
 		for module in mod_list:
 			hypervisor.get_handler(arduino_id).addListener(module)
-	
+
 	hypervisor.run()
 	return None
 

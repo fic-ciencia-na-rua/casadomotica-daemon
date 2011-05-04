@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# vim: set fileencoding=utf-8 noet ts=8 sw=8 sts=8 :
+# vim: set fileencoding=utf-8 noet ts=4 sw=4 sts=4 tw=79 :
 
 ############# DAEMON CODE ##############
 ########################################
@@ -46,10 +46,10 @@ def main():
 	from multiprocessing import Process
 	frontend = Process(target=FrontendServer)
 	arduino_ctl = Process(target=ArduinoHypervisor)
-	
+
 	frontend.start()
 	arduino_ctl.start()
-	
+
 	frontend.join()
 	arduino_ctl.join()
 
