@@ -3,7 +3,7 @@
 
 import controller, arduino
 from threading import Thread
-import queue
+import Queue
 
 # from controller import *
 
@@ -32,8 +32,8 @@ class ArduinoHypervisor:
 		# allow us to, controller-agnostic.
 		def __init__(self, arduino):
 			self.arduino = arduino
-			self.in_queue = queue.Queue()
-			self.out_queue = queue.Queue()
+			self.in_queue = Queue.Queue()
+			self.out_queue = Queue.Queue()
 			self.listeners = []
 
 		def addListener(self, callback):
@@ -89,9 +89,20 @@ class ArduinoHypervisor:
 
 	## End of class ArduinoHandler
 	def __init__(self, device_list):
-		self.arduino_handlers = []
+		self.arduino_handlers = {}
+		print 'Lista de dispositivos: '
+		print device_list
 		for device in device_list:
-			self.arduino_handlers.append(ArduinoHandler(Arduino(device)))
+			device = arduino.Arduino(device)
+			id = device.get_id()
+			self.arduino_handlers[id] = device
+			print 'Got device with ID=%d' % id
+	
+	def get_handler(self, id):
+		if self.arduino_handlers.has_key(id):
+			return self.arduino_handlers[id]
+		else:
+			return None
 
 	def run(self):
 		"""This funcion runs each arduinoHandler in a separate thread.
@@ -114,9 +125,9 @@ def run():
 	for module_name, module in modules.iteritems():
 		arduino_id = module.arduino_id
 		if arduino_id in workers:
-			workers[arduino_id].append(cobj)
+			workers[arduino_id].append(module)
 		else:
-			workers[arduino_id] = [cobj]
+			workers[arduino_id] = [module]
 
 	for arduino_id, mod_list in workers.iteritems():
 		for module in mod_list:

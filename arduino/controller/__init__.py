@@ -5,11 +5,14 @@ __all__ = ["iluminacion"]
 
 def load_all():
 	modules = {}
-	
+
 	for module in __all__:
 		x = __import__(__name__ +'.'+ module)
-		modules[module] = (x)
-		
+
+		# Código ad-hoc
+		x = getattr(getattr(x, 'controller'), module)
+		modules[module] = x
+
 	return modules
 
 

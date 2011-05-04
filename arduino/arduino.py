@@ -14,9 +14,15 @@ class Arduino:
 		Arduino object to it.
 		"""
 		print(serialport)
-	#	self.serialport = serial.SerialPort(serialport, 9600)
-	#	self.fd = self.serialport.fd
-	
+		try:
+			self.serialport = serial.SerialPort(serialport, 9600)
+			self.fd = self.serialport.fd
+			self.error = False
+			self.id = None
+		except:
+			self.error = True
+			self.id = 0
+
 	def read_byte(self, block=False):
 		d = os.read(self.fd, 1)
 		
@@ -38,18 +44,31 @@ class Arduino:
 		return self.serialport.write_byte(byte)
 
 	def get_id(self):
+		if self.error:
+			return self.id
+
+		if self.id:
+			return self.id
+
+		# Consume all bytes for this query
+		while self.read_byte(block=False) != None:
+			pass
+
 		self.write(QUERY_IDENT)
-		return read_byte(True)
-	
+		self.id = read_byte(true)
+		return self.id
+
+
 
 def device_list():
 	if not os.path.isdir('/dev'):
 		raise EnvironmentError('You have no /dev dir!')
 
 	devices = os.listdir('/dev')
-	arduino_re = re.compile('tty\.')
+	arduino_re = re.compile('tty\.usbserial')
 
 	# Get the Arduino's for each device
 	devices = [ Arduino('/dev/' + (device)) for device in devices if arduino_re.match(device) != None ]
+	return devices
 	
 

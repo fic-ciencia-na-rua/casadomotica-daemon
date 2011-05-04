@@ -13,7 +13,7 @@ import os, sys, re
 import asyncore
 import socket
 
-from arduino import hypervisor
+import arduino.hypervisor
 
 
 class FrontendConnector(asyncore.dispatcher_with_send):
@@ -45,13 +45,18 @@ def main():
 	# Spawn threads
 	from multiprocessing import Process
 	frontend = Process(target=FrontendServer)
-	arduino_ctl = Process(target=ArduinoHypervisor)
+	arduino_ctl = Process(target=arduino.hypervisor.run)
 
-	frontend.start()
+	#frontend.start()
 	arduino_ctl.start()
 
-	frontend.join()
+	#frontend.join()
 	arduino_ctl.join()
+
+
+if __name__ == "__main__":
+	print 'Executing main thread...'
+	main()
 
 
 
