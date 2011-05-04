@@ -11,6 +11,11 @@ DAEMON_RUNNING = True
 
 
 def join_alive_threads(thread_list):
+	"""This function waits for alive threads to join
+	and blocks until that happens.
+	In order to downgrade memory requirements, each time a
+	thread joins it is removed from the thread_list
+	"""
 	for thread in thread_list:
 		if not thread.is_alive():
 			thread_list.remove(thread)
@@ -18,8 +23,13 @@ def join_alive_threads(thread_list):
 		thread.join(1)
 	pass
 
+# ArduinoHypervisor is the class that handles the supervising of the N threads
+# (one for each Arduino) and attaches the modules to the arduino they demand.
 class ArduinoHypervisor:
 	class ArduinoHandler():
+		# ArduinoHandler is the class that handles each Arduino in a concurrent
+		# way so inputs/outputs are nonblocking and transfered when the buffers
+		# allow us to, controller-agnostic.
 		def __init__(self, arduino):
 			self.arduino = arduino
 			self.in_queue = queue.Queue()
@@ -27,12 +37,23 @@ class ArduinoHypervisor:
 			self.listeners = []
 
 		def addListener(self, callback):
+			"""Adds a listener to the list of listeners to be warned about
+			updates in this arduino channel
+			"""
 			self.listeners.append(callback)
 
 		def queue_put(self, str):
+			"""This function allows to put data on the output queue in order to
+			be sent to the Arduino
+			"""
 			self.out_queue.put(msg, block=True)
 
 		def run(self):
+			"""Main Handler loop:
+
+			While the daemon is started, it will read bytes from the Arduino
+			serial port and send data if it is required to.
+			"""
 			while DAEMON_RUNNING:
 				byte = self.arduino.read_byte(False)
 				if byte == None:
