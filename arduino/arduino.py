@@ -25,15 +25,23 @@ class Arduino:
 			raise
 
 	def read_byte(self, block=False):
-		print 'Lendo byte...'
-		d = os.read(self.fd, 1)
-		print 'Lido byte "%s"' % d
-		
-		while d == "":
-			if not block:
-				return None
-			time.sleep(0.01)
+		"""Lee un byte.
+		Si block=True lee con espera activa hasta
+		que exista algún byte que leer, porque no
+		funciona sin espera activa.
+		"""
+		if block:
+			while True:
+				d = os.read(self.fd, 1)
+				if d != "":
+					return ord(d)
+				else:
+					#time.sleep(0.001)
+					pass
+		else:
 			d = os.read(self.fd, 1)
+			if d == "":
+				d = None
 
 		return d
 
@@ -57,8 +65,11 @@ class Arduino:
 		while self.read_byte(block=False) != None:
 			pass
 
+		print 'Escribimos byte...'
 		self.write_byte(QUERY_IDENT)
+		print 'Leemos byte con block...'
 		self.id = self.read_byte(True)
+		print 'Lido byte %s' % self.id
 		return self.id
 
 
