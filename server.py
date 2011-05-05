@@ -51,7 +51,12 @@ def main():
 	arduino_ctl.start()
 
 	#frontend.join()
-	arduino_ctl.join()
+	try:
+		arduino_ctl.join()
+	except KeyboardInterrupt:
+		print('')
+		print('Ctrl.+C called. Dying...')
+
 
 
 if __name__ == "__main__":

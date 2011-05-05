@@ -55,30 +55,36 @@ class ArduinoHypervisor:
 			While the daemon is started, it will read bytes from the Arduino
 			serial port and send data if it is required to.
 			"""
-			while DAEMON_RUNNING:
-				byte = self.arduino.read_byte(False)
-				if byte == None:
-					if self.out_queue.empty():
-						sleep(0.01)
-					pass
-				else:
-					if byte == BYTE_STX:
-						msg = self.arduino.read_until(BYTE_ETX)
-						msg = msg[:-1]
-					else:
-						msg = byte
-					self.in_queue.put(msg, block=False)
-					self.parentcv.notify()
+			global DAEMON_RUNNING
 
-				# Do we have to send data?
-				if not self.out_queue.empty():
-					# Send one message
-					try:
-						msg = self.out_queue.get_nowait()
-						self.arduino.write(msg)
-						self.out_queue.task_done()
-					except:
-						print 'Data was not avaliable in out_queue'
+			while DAEMON_RUNNING:
+				try:
+					byte = self.arduino.read_byte(False)
+					if byte == None:
+						if self.out_queue.empty():
+							sleep(0.01)
+						pass
+					else:
+						if byte == BYTE_STX:
+							msg = self.arduino.read_until(BYTE_ETX)
+							msg = msg[:-1]
+						else:
+							msg = byte
+						self.in_queue.put(msg, block=False)
+						self.parentcv.notify()
+
+					# Do we have to send data?
+					if not self.out_queue.empty():
+						# Send one message
+						try:
+							msg = self.out_queue.get_nowait()
+							self.arduino.write(msg)
+							self.out_queue.task_done()
+						except:
+							print 'Data was not avaliable in out_queue'
+
+				except KeyboardInterrupt:
+					DAEMON_RUNNING = False
 			pass
 
 		def getListeners(self):
@@ -99,16 +105,20 @@ class ArduinoHypervisor:
 	## End of class ArduinoHandler
 	def __init__(self, device_list):
 		self.arduino_handlers = {}
-		self.cv = threading.Condition(threading.Lock())
-		
+		self.cv = threading.Condition()
+
 		print 'Lista de dispositivos: '
 		print device_list
 		for device in device_list:
-			device = arduino.Arduino(device)
+			try:
+				device = arduino.Arduino(device)
+			except Exception as e:
+				print('Error while initializing device %s: %s' % (device, e))
+				continue
 			id = device.get_id()
 			self.arduino_handlers[id] = device
 			print 'Got device with ID=%d' % id
-	
+
 	def get_handler(self, id):
 		if self.arduino_handlers.has_key(id):
 			return self.arduino_handlers[id]
@@ -120,37 +130,47 @@ class ArduinoHypervisor:
 		so that each arduino handler won't lock while
 		waiting from info to be done
 		"""
+		global DAEMON_RUNNING
+
 		pool = multiprocessing.Pool(processes=6)
 		while DAEMON_RUNNING:
-			self.cv.wait(10)
-			for arduino in self.arduino_handlers:
-				if not arduino.in_queue().empty():
-					for listener in arduino.getListeners():
-						pool.apply_async(listener.recv_msg, [msg,
-							arduino.in_queue])
-						
-						
+			self.cv.acquire()
+			try:
+				self.cv.wait(10)
+				for arduino in self.arduino_handlers:
+					if not arduino.in_queue().empty():
+						for listener in arduino.getListeners():
+							pool.apply_async(listener.recv_msg, [msg,
+								arduino.in_queue])
+
+			except KeyboardInterrupt:
+				DAEMON_RUNNING = False
+			finally:
+				self.cv.release()
 		pass
 
-	
+
 	def run(self):
 		"""This funcion runs each arduinoHandler in a separate thread.
 		Then waits for processing from them to call a pool of workers
 		(see self.loop(self))
 		"""
-		
+
 		threads = []
 
 		for (id, obj) in self.arduino_handlers.iteritems():
 			myobj = self.ArduinoHandler(obj, self.cv)
 			thread = threading.Thread(target=myobj.run)
 			threads.append(thread)
-		
+
 		for thread in threads:
 			thread.start()
 
-		self.loop()
-		
+		try:
+			self.loop()
+		except KeyboardInterrupt:
+			pass
+
 		join_alive_threads(threads)
 
 

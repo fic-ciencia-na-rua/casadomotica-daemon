@@ -22,6 +22,7 @@ class Arduino:
 		except:
 			self.error = True
 			self.id = 0
+			raise
 
 	def read_byte(self, block=False):
 		d = os.read(self.fd, 1)
