@@ -2,8 +2,8 @@
 # vim: set fileencoding=utf-8 noet ts=4 sw=4 sts=4 tw=79 :
 
 import controller, arduino
-from threading import Thread
-import Queue
+import threading
+import multiprocessing
 
 # from controller import *
 
@@ -30,10 +30,11 @@ class ArduinoHypervisor:
 		# ArduinoHandler is the class that handles each Arduino in a concurrent
 		# way so inputs/outputs are nonblocking and transfered when the buffers
 		# allow us to, controller-agnostic.
-		def __init__(self, arduino):
+		def __init__(self, arduino, parentcv):
 			self.arduino = arduino
-			self.in_queue = Queue.Queue()
-			self.out_queue = Queue.Queue()
+			self.parentcv = parentcv
+			self.in_queue = multiprocessing.Queue()
+			self.out_queue = multiprocessing.Queue()
 			self.listeners = []
 
 		def addListener(self, callback):
@@ -67,6 +68,7 @@ class ArduinoHypervisor:
 					else:
 						msg = byte
 					self.in_queue.put(msg, block=False)
+					self.parentcv.notify()
 
 				# Do we have to send data?
 				if not self.out_queue.empty():
@@ -79,17 +81,26 @@ class ArduinoHypervisor:
 						print 'Data was not avaliable in out_queue'
 			pass
 
-		def _wakeupListeners(self):
+		def getListeners(self):
+			return self.listeners
+
+		def wakeupListeners(self):
+			"""To be done by the parent
+			Wakes up all the listeners involved in the first message
+			of the in_queue of this controller
+			"""
 			while not self.in_queue.empty():
 				msg = self.in_queue.get(block=False)
 				for listener in self.listeners:
-					listener.recv_msg(msg)
+					listener.recv_msg(msg, self.queue_put)
 				self.in_queue.task_done()
 			pass
 
 	## End of class ArduinoHandler
 	def __init__(self, device_list):
 		self.arduino_handlers = {}
+		self.cv = threading.Condition(threading.Lock())
+		
 		print 'Lista de dispositivos: '
 		print device_list
 		for device in device_list:
@@ -104,15 +115,42 @@ class ArduinoHypervisor:
 		else:
 			return None
 
+	def loop(self):
+		"""This function runs a multiprocessing queue
+		so that each arduino handler won't lock while
+		waiting from info to be done
+		"""
+		pool = multiprocessing.Pool(processes=6)
+		while DAEMON_RUNNING:
+			self.cv.wait(10)
+			for arduino in self.arduino_handlers:
+				if not arduino.in_queue().empty():
+					for listener in arduino.getListeners():
+						pool.apply_async(listener.recv_msg, [msg,
+							arduino.in_queue])
+						
+						
+		pass
+
+	
 	def run(self):
 		"""This funcion runs each arduinoHandler in a separate thread.
-		Then blocks until join from the child threads.
+		Then waits for processing from them to call a pool of workers
+		(see self.loop(self))
 		"""
+		
 		threads = []
-		for obj in self.arduino_handlers:
-			thread.append(Thread(target=obj.run))
+
+		for (id, obj) in self.arduino_handlers.iteritems():
+			myobj = self.ArduinoHandler(obj, self.cv)
+			thread = threading.Thread(target=myobj.run)
+			threads.append(thread)
+		
+		for thread in threads:
 			thread.start()
 
+		self.loop()
+		
 		join_alive_threads(threads)
 
 
@@ -131,7 +169,9 @@ def run():
 
 	for arduino_id, mod_list in workers.iteritems():
 		for module in mod_list:
-			hypervisor.get_handler(arduino_id).addListener(module)
+			handler = hypervisor.get_handler(arduino_id)
+			if handler != None:
+				handler.addListener(module)
 
 	hypervisor.run()
 	return None
