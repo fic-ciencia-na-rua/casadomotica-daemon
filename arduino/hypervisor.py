@@ -1,9 +1,10 @@
 #!/usr/bin/python
 # vim: set fileencoding=utf-8 noet ts=4 sw=4 sts=4 tw=79 :
 
+import time, threading, multiprocessing
 import controller, arduino
-import threading
-import multiprocessing
+
+from constants import *
 
 # from controller import *
 
@@ -32,10 +33,14 @@ class ArduinoHypervisor:
 		# allow us to, controller-agnostic.
 		def __init__(self, arduino, parentcv):
 			self.arduino = arduino
+			self.id = arduino.get_id()
 			self.parentcv = parentcv
 			self.in_queue = multiprocessing.Queue()
 			self.out_queue = multiprocessing.Queue()
 			self.listeners = []
+
+		def get_id(self):
+			return self.id
 
 		def addListener(self, callback):
 			"""Adds a listener to the list of listeners to be warned about
@@ -62,16 +67,20 @@ class ArduinoHypervisor:
 					byte = self.arduino.read_byte(False)
 					if byte == None:
 						if self.out_queue.empty():
-							sleep(0.01)
+							time.sleep(0.01)
 						pass
 					else:
-						if byte == BYTE_STX:
-							msg = self.arduino.read_until(BYTE_ETX)
-							msg = msg[:-1]
-						else:
-							msg = byte
-						self.in_queue.put(msg, block=False)
-						self.parentcv.notify()
+						self.parentcv.acquire()
+						try:
+							if byte == BYTE_STX:
+								msg = self.arduino.read_until(BYTE_ETX)
+								msg = msg[:-1]
+							else:
+								msg = byte
+							self.in_queue.put(msg, block=False)
+							self.parentcv.notify()
+						finally:
+							self.parentcv.release()
 
 					# Do we have to send data?
 					if not self.out_queue.empty():
@@ -111,13 +120,14 @@ class ArduinoHypervisor:
 		print device_list
 		for device in device_list:
 			try:
-				device = arduino.Arduino(device)
+				device = self.ArduinoHandler(device, self.cv)
 			except Exception as e:
-				print('Error while initializing device %s: %s' % (device, e))
+				print('Error while initializing device %s: %s' %
+						(device, e))
 				continue
 			id = device.get_id()
 			self.arduino_handlers[id] = device
-			print 'Got device with ID=%d' % id
+			print 'Got device with ID=%s' % id
 
 	def get_handler(self, id):
 		if self.arduino_handlers.has_key(id):
@@ -137,8 +147,8 @@ class ArduinoHypervisor:
 			self.cv.acquire()
 			try:
 				self.cv.wait(10)
-				for arduino in self.arduino_handlers:
-					if not arduino.in_queue().empty():
+				for (id,arduino) in self.arduino_handlers.iteritems():
+					if not arduino.in_queue.empty():
 						for listener in arduino.getListeners():
 							pool.apply_async(listener.recv_msg, [msg,
 								arduino.in_queue])
@@ -159,8 +169,7 @@ class ArduinoHypervisor:
 		threads = []
 
 		for (id, obj) in self.arduino_handlers.iteritems():
-			myobj = self.ArduinoHandler(obj, self.cv)
-			thread = threading.Thread(target=myobj.run)
+			thread = threading.Thread(target=obj.run)
 			threads.append(thread)
 
 		for thread in threads:

@@ -1,7 +1,7 @@
 #!/bin/python
 # vim: set fileencoding=utf-8 noet ts=4 sw=4 sts=4 tw=79 :
 
-import os, re
+import os, re, time
 
 import serial
 from constants import *
@@ -21,11 +21,13 @@ class Arduino:
 			self.id = None
 		except:
 			self.error = True
-			self.id = 0
+			self.id = -666
 			raise
 
 	def read_byte(self, block=False):
+		print 'Lendo byte...'
 		d = os.read(self.fd, 1)
+		print 'Lido byte "%s"' % d
 		
 		while d == "":
 			if not block:
@@ -48,15 +50,15 @@ class Arduino:
 		if self.error:
 			return self.id
 
-		if self.id:
+		if self.id != None:
 			return self.id
 
 		# Consume all bytes for this query
 		while self.read_byte(block=False) != None:
 			pass
 
-		self.write(QUERY_IDENT)
-		self.id = read_byte(true)
+		self.write_byte(QUERY_IDENT)
+		self.id = self.read_byte(True)
 		return self.id
 
 
